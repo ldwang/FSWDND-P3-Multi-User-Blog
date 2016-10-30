@@ -125,10 +125,11 @@ class Post(db.Model):
     content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
     last_modified = db.DateTimeProperty(auto_now = True)
+    posted_by = db.ReferenceProperty(User, collection_name="posts" )
 
-    def render(self):
+    def render(self, user=None):
         self._render_text = self.content.replace('\n', '<br>')
-        return render_str("post.html", p = self)
+        return render_str("post.html", p = self, user=user)
 
 class BlogFront(BlogHandler):
     def get(self):
@@ -141,10 +142,76 @@ class PostPage(BlogHandler):
         post = db.get(key)
 
         if not post:
-            self.error(404)
+            error_msg = "This post doesn't exist."
+            self.render("error.html", error_msg=error_msg)
             return
 
         self.render("permalink.html", post = post)
+
+class EditPost(BlogHandler):
+    def get(self, post_id):
+        if self.user:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if not post:
+                msg = "This post doesn't exist."
+                self.render("error.html", error=msg)
+                return
+            if post.posted_by.name != self.user.name:
+                msg = "You are not the creater of this post."
+                self.render("error.html", error=msg)
+                return
+
+            self.render("editpost.html", post=post)
+
+        else:
+            self.redirect("/login")
+
+    def post(self, post_id):
+        if self.user:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if not post:
+                msg = "This post doesn't exist."
+                self.render("error.html", error=msg)
+                return
+            if post.posted_by.name != self.user.name:
+                msg = "You are not the creater of this post."
+                self.render("error.html", error=msg)
+                return
+
+            subject = self.request.get('subject')
+            content = self.request.get('content')
+            if subject and content:
+                post.subject = subject
+                post.content = content
+                post.put()
+                self.redirect('/blog/%s' % post_id)
+            else:
+                error = "subject and content, please!"
+                self.render("editpost.html", post=post, error=error)
+        else:
+            self.redirect("/login")
+
+class DeletePost(BlogHandler):
+    def get(self, post_id):
+        if self.user:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if not post:
+                msg = "This post doesn't exist."
+                self.render("error.html", error=msg)
+                return
+            if post.posted_by.name != self.user.name:
+                msg = "You are not the creater of this post."
+                self.render("error.html", error=msg)
+                return
+
+            post.delete()
+            self.redirect('/blog')
+
+        else:
+            self.redirect("/login")
 
 class NewPost(BlogHandler):
     def get(self):
@@ -160,8 +227,9 @@ class NewPost(BlogHandler):
         subject = self.request.get('subject')
         content = self.request.get('content')
 
+
         if subject and content:
-            p = Post(parent = blog_key(), subject = subject, content = content)
+            p = Post(parent = blog_key(), subject = subject, content = content, posted_by=self.user)
             p.put()
             self.redirect('/blog/%s' % str(p.key().id()))
         else:
@@ -266,6 +334,8 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/?', BlogFront),
                                ('/blog/([0-9]+)', PostPage),
                                ('/blog/newpost', NewPost),
+                               ('/blog/edit/([0-9]+)', EditPost),
+                               ('/blog/delete/([0-9]+)', DeletePost),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),

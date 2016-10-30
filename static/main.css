@@ -67,6 +67,10 @@ input[type=submit] {
   font-size: 24px;
 }
 
+input[name=cancel] {
+    font-size: 24px;
+}
+
 .main-title {
     display: block;
     color: #222;
@@ -89,6 +93,40 @@ input[type=submit] {
 .post-title {
     font-size: 24px;
     font-weight: bold;
+
+    text-decoration: none;
+    color: #333;
+}
+
+.post-title:visisted {
+    color: #333;
+}
+
+.post-subtitle {
+    position: relative;
+    #margin-top: 5px;
+    #margin-bottom: 15px;
+}
+
+.posted-by {
+    font-size: 16px;
+    color: #999;
+    font-style: oblique;
+}
+
+.post-toolbar {
+    position: absolute;
+    right: 0px;
+    bottom: 0px;
+}
+
+.post-action {
+    font-size: 14px;
+    color: #999;
+}
+
+.post-action:visited {
+    color: #999;
 }
 
 .post-date {

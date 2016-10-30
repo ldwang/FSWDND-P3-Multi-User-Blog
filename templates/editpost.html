@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Edit post</h2>
+
+    <form method="post">
+      <label>
+        <div>subject</div>
+        <input type="text" name="subject" value="{{ post.subject }}">
+      </label>
+
+      <label>
+        <div>blog</div>
+        <textarea name="content">{{ post.content }}</textarea>
+      </label>
+
+      <div class="error">{{error}}</div>
+
+      <input type="submit" name="submit" value="Submit" />
+      <input action="action" type="button" name="cancel" value="Cancel" onclick="history.go(-1);" />
+    </form>
+{% endblock %}
