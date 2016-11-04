@@ -1,5 +1,10 @@
-###### Readme File #####
-
-Instruction:
+# Introduction:
 The "multi user blog" application is running at Google App Engine Platform. Please visit ldwang-udacity.appspot.com for a example.
 
+# How to use the application:
+- Once the application is firstly installed on Google APP engine, the home page of the blog is empty. user can sign up and then login into the system by clicking the links at the top-right corner.
+- after login in, user can click the 'add' link at the top-right corner to add new post; click 'logout' link to log out the system.
+- user can click the subject of the post at the front page to the single post page. The detailed comments list will show behind the post content.
+- There is a toolbar at the right side of each post with "edit|delete" link to allow the post author to edit or delete the post. Only the author of the post will see this toolbar.
+- at the bottom of the post section, the total comment counts are showed and the link clicked to be redirected to the single post page. Besides the comment area, two 'like' and 'dislike' icon are clickable to increase the numbers.
+- at the single post page, there is a "new comment" area to allow the registered users to add the new comment. at the right side of the each comment list, the author of the comment can see 'edit|delete' link. the comment author can click these links to edit or delete the comment.
