@@ -64,11 +64,11 @@ textarea {
 }
 
 input[type=submit] {
-  font-size: 24px;
+  font-size: 18px;
 }
 
 input[name=cancel] {
-    font-size: 24px;
+    font-size: 18px;
 }
 
 .main-title {
@@ -109,6 +109,7 @@ input[name=cancel] {
 }
 
 .posted-by {
+    margin-top: 5px;
     font-size: 16px;
     color: #999;
     font-style: oblique;
@@ -118,6 +119,13 @@ input[name=cancel] {
     position: absolute;
     right: 0px;
     bottom: 0px;
+}
+
+.img-vote {
+    height: 16px;
+    margin-top: 5px;
+    margin-left: 15px;
+    border: 0;
 }
 
 .post-action {
@@ -141,3 +149,67 @@ input[name=cancel] {
     margin-top: 5px;
 }
 
+.post-socialbar {
+    position: relative;
+    #margin-top: 5px;
+    #margin-bottom: 5px;
+}
+.comments-section {
+    margin-top: 20px;
+    background-color: #f2f2f2;
+    padding: 20px;
+    #border-style: solid;
+    #border-color: #999;
+}
+.comment-content {
+    width: 650px;
+    height: 80px;
+    font-size: 14px;
+    font-family: monospace;
+}
+.comment-form {
+    border-radius: 5px;
+    background-color: white;
+    padding: 20px;
+}
+.comment {
+    margin-top: 10px;
+    position: relative;
+    border-bottom: 1px solid #666;
+}
+
+.comment-new {
+    font-size: 14px;
+    color: #999;
+    font-style: normal;
+}
+.comment-heading {
+    position: relative;
+    margin-bottom: 5px;
+}
+
+.commented-by {
+    font-size: 14px;
+    color: #999;
+    font-style: oblique;
+}
+
+.comment-date {
+    position: absolute;
+    right: 15px;
+    bottom: 0px;
+    color: #999;
+}
+
+.comment-display {
+    width: 650px;
+    height: 50px ;
+    font-size: 12px;
+    font-family: monospace;
+}
+.comment-toolbar {
+        position: absolute;
+    right: 15px;
+    bottom: 5px;
+    color: #999;
+}

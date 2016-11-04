@@ -1,0 +1,22 @@
+<div class="comment">
+  <div class="comment-heading">
+    <div class="commented-by"> {{ comment.commented_by.name }} </div>
+    <div class="comment-date">
+      {{comment.created.strftime("%b %d, %Y %H:%M")}}
+    </div>
+  </div>
+  <div class="comment-display">
+    {{comment._render_text | safe}}
+  </div>
+  {% if user %}
+      {% if user.name == comment.commented_by.name %}
+        <div class="comment-toolbar">
+          <a href="/blog/editcomment?post_id={{post.key().id()}}&comment_id={{comment.key().id() }}"
+             class="comment-action">Edit</a>
+          <a href="/blog/deletecomment?post_id={{post.key().id()}}&comment_id={{comment.key().id() }}"
+             onclick="return confirm('Are you sure you want to delete this comment?');" class="comment-action">Delete
+          </a>
+        </div>
+      {% endif %}
+    {% endif %}
+</div>

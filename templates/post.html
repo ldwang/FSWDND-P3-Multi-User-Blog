@@ -23,4 +23,15 @@
   <div class="post-content">
     {{p._render_text | safe}}
   </div>
+  <div class="post-socialbar">
+    {% if comments.count() > 0 %}
+      <a href="/blog/{{ p.key().id() }}" class="comments-count"> {{ comments.count()}} comment(s)</a>
+    {% else %}
+      <a href="/blog/{{ p.key().id() }}" class="comments-count"> 0 comment</a>
+    {% endif %}
+    <a href="/blog/vote/{{p.key().id()}}?choice=like"><img class="img-vote" src="/static/like-24.png"></a> {{
+    p.like_count}}
+    <a href="/blog/vote/{{p.key().id()}}?choice=dislike"><img class="img-vote" src="/static/dislike-24.png"></a>
+    {{p.dislike_count}}
+  </div>
 </div>
