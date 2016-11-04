@@ -13,8 +13,8 @@
     {% if user %}
       {% if user.name == p.posted_by.name %}
         <div class="post-toolbar">
-          <a href="/blog/edit/{{p.key().id() }}" class="post-action">Edit</a>
-          <a href="/blog/delete/{{p.key().id() }}"
+          <a href="/blog/edit?post_id={{p.key().id() }}" class="post-action">Edit</a>
+          <a href="/blog/delete?post_id={{p.key().id() }}"
              onclick="return confirm('Are you sure you want to delete this post?');" class="post-action">Delete</a>
         </div>
       {% endif %}
@@ -29,9 +29,9 @@
     {% else %}
       <a href="/blog/{{ p.key().id() }}" class="comments-count"> 0 comment</a>
     {% endif %}
-    <a href="/blog/vote/{{p.key().id()}}?choice=like"><img class="img-vote" src="/static/like-24.png"></a> {{
+    <a href="/blog/vote?post_id={{p.key().id()}}&choice=like"><img class="img-vote" src="/static/like-24.png"></a> {{
     p.like_count}}
-    <a href="/blog/vote/{{p.key().id()}}?choice=dislike"><img class="img-vote" src="/static/dislike-24.png"></a>
+    <a href="/blog/vote?post_id={{p.key().id()}}&choice=dislike"><img class="img-vote" src="/static/dislike-24.png"></a>
     {{p.dislike_count}}
   </div>
 </div>

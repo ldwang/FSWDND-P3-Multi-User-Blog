@@ -20,6 +20,7 @@ def render_str(template, **params):
     t = jinja_env.get_template(template)
     return t.render(params)
 
+### security functions for cookie
 def make_secure_val(val):
     return '%s|%s' % (val, hmac.new(secret, val).hexdigest())
 
@@ -28,6 +29,7 @@ def check_secure_val(secure_val):
     if secure_val == make_secure_val(val):
         return val
 
+### basic class template for content rendering
 class BlogHandler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
@@ -60,13 +62,9 @@ class BlogHandler(webapp2.RequestHandler):
         uid = self.read_secure_cookie('user_id')
         self.user = uid and User.by_id(int(uid))
 
-def render_post(response, post):
-    response.out.write('<b>' + post.subject + '</b><br>')
-    response.out.write(post.content)
-
 class MainPage(BlogHandler):
   def get(self):
-      self.write('Hello, Udacity!')
+      self.redirect('/blog')
 
 
 ##### user stuff
@@ -120,6 +118,7 @@ class User(db.Model):
 def blog_key(name = 'default'):
     return db.Key.from_path('blogs', name)
 
+#DB Model for Post class
 class Post(db.Model):
     subject = db.StringProperty(required = True)
     content = db.TextProperty(required = True)
@@ -134,17 +133,21 @@ class Post(db.Model):
         comments = self.get_comments()
         return render_str("post.html", p = self, user=user, comments=comments)
 
+    #return a list of all the comments in descendent order
     def get_comments(self):
         return Comment.all().ancestor(self).order('-last_modified')
 
+    #return a list of all the votes
     def get_votes(self):
         return Vote.all().filter('post =', self)
 
+#get the blog front page
 class BlogFront(BlogHandler):
     def get(self):
         posts = greetings = Post.all().order('-created')
         self.render('front.html', posts = posts)
 
+#get the single post page
 class PostPage(BlogHandler):
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
@@ -157,9 +160,44 @@ class PostPage(BlogHandler):
         comments = post.get_comments()
         self.render("permalink.html", post = post, comments=comments)
 
-class EditPost(BlogHandler):
-    def get(self, post_id):
+#Common class for edit and delete post
+class HandlePost(BlogHandler):
+    def get(self):
+        #make sure the user exists
         if self.user:
+            post_id = self.request.get('post_id')
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+
+            #make sure the post exists
+            if not post:
+                msg = "This post doesn't exist."
+                self.render("error.html", error=msg)
+                return
+
+            #make sure the user is the author of the post
+            if post.posted_by.name != self.user.name:
+                msg = "You are not the author of this post."
+                self.render("error.html", error=msg)
+                return
+
+            self.get_done(post)
+
+        else:
+            self.redirect("/login")
+
+    def get_done(self, *a, **kw):
+        raise NotImplementedError
+
+
+class EditPost(HandlePost):
+    #customized function for rendering the edit post page
+    def get_done(self,post):
+        self.render("editpost.html", post=post)
+
+    def post(self):
+        if self.user:
+            post_id = self.request.get('post_id')
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
             if not post:
@@ -171,26 +209,10 @@ class EditPost(BlogHandler):
                 self.render("error.html", error=msg)
                 return
 
-            self.render("editpost.html", post=post)
-
-        else:
-            self.redirect("/login")
-
-    def post(self, post_id):
-        if self.user:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            if not post:
-                msg = "This post doesn't exist."
-                self.render("error.html", error=msg)
-                return
-            if post.posted_by.name != self.user.name:
-                msg = "You are not the creater of this post."
-                self.render("error.html", error=msg)
-                return
-
             subject = self.request.get('subject')
             content = self.request.get('content')
+
+            #make sure both subject and content are not empty
             if subject and content:
                 post.subject = subject
                 post.content = content
@@ -202,26 +224,13 @@ class EditPost(BlogHandler):
         else:
             self.redirect("/login")
 
-class DeletePost(BlogHandler):
-    def get(self, post_id):
-        if self.user:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            if not post:
-                msg = "This post doesn't exist."
-                self.render("error.html", error=msg)
-                return
-            if post.posted_by.name != self.user.name:
-                msg = "You are not the author of this post."
-                self.render("error.html", error=msg)
-                return
+class DeletePost(HandlePost):
+    def get_done(self, post):
+            #delete associated comments and votes before deleting the post from DBstore
             db.delete(post.get_comments())
             db.delete(post.get_votes())
             post.delete()
             self.redirect('/blog')
-
-        else:
-            self.redirect("/login")
 
 class NewPost(BlogHandler):
     def get(self):
@@ -250,36 +259,39 @@ class NewPost(BlogHandler):
 def vote_key(name = 'default'):
     return db.Key.from_path('votes', name)
 
+#vote DB Model class with two reference property to User and Post Model
 class Vote(db.Model):
     voter = db.ReferenceProperty(User)
     post = db.ReferenceProperty(Post)
     like = db.BooleanProperty(required=True)
 
     @classmethod
+    #check if the user has voted 'like' or 'dislike' before
     def voted(cls, post, user, like):
         v  = Vote.all().filter('post =', post).filter('like =', like).filter('voter =', user).get()
-        #v.filter('like =', like)
-        #v.filter('voter =', user).get()
         if v:
             return True
         else:
             return False
 
-
+#Class for adding vote counts for the post. The 'like' or 'dislike' counts will be updated along with the new vote record in Vote Entity
 class   VotePost(BlogHandler):
-    def get(self, post_id):
+    def get(self):
         if self.user:
+            post_id = self.request.get('post_id')
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
             if not post:
                 msg = "This post doesn't exist."
                 self.render("error.html", error=msg)
                 return
+            #make sure the author of post couldn't vote for himself/herself's post
             if post.posted_by.name == self.user.name:
                 msg = "You are not allowed to vote yourself's post."
                 self.render("error.html", error=msg)
                 return
 
+            #check valid choice type
             choice = self.request.get('choice')
             if choice not in ['like', 'dislike']:
                 msg = "The vote choice is wrong."
@@ -288,13 +300,17 @@ class   VotePost(BlogHandler):
 
             like = True if choice=='like' else False
 
+            #check if it's voted already
             if Vote.voted(post, self.user, like):
                 msg = "You have voted '%s' before." % choice
                 self.render("error.html", error=msg)
                 return
             else:
+                # add vote record in Vote entity
                 vote = Vote(parent=vote_key(), voter=self.user, post=post, like=like)
                 vote.put()
+
+                #update vote count in post
                 if like:
                     post.like_count += 1
                 else:
@@ -306,7 +322,7 @@ class   VotePost(BlogHandler):
         else:
             self.redirect("/login")
 
-
+### functions verifying the formats of user, password and email
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 def valid_username(username):
     return username and USER_RE.match(username)
@@ -401,19 +417,23 @@ class Welcome(BlogHandler):
 
 #### Comment stuff
 
+#Comment db model, the child entity of Post
 class Comment(db.Model):
     content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
     last_modified = db.DateTimeProperty(auto_now = True)
     commented_by = db.ReferenceProperty(User, collection_name="comments" )
 
-    def render(self, **parm):
+    def render(self, **kw):
         self._render_text = self.content.replace('\n', '<br>')
-        return render_str("comment.html", comment=self, **parm)
+        return render_str("comment.html", comment=self, **kw)
+
+
 
 class NewComment(BlogHandler):
-    def get(self,post_id):
+    def get(self):
         if self.user:
+            post_id = self.request.get('post_id')
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
             if not post:
@@ -425,8 +445,9 @@ class NewComment(BlogHandler):
         else:
             self.redirect("/login")
 
-    def post(self, post_id):
+    def post(self):
         if self.user:
+            post_id = self.request.get('post_id')
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
             if not post:
@@ -447,67 +468,54 @@ class NewComment(BlogHandler):
         else:
             self.redirect("/login")
 
-class DeleteComment(BlogHandler):
+#Common class for edit and delete comment
+class HandleComment(BlogHandler):
     def get(self):
         if self.user:
             post_id = self.request.get('post_id')
             post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(post_key)
 
-            comment_id = self.request.get('comment_id')
-            comment_key = db.Key.from_path( 'Comment', int(comment_id), parent=post_key)
-            comment = db.get(comment_key)
+            #make sure the post exists
             if not post:
                 msg = "This post  doesn't exist."
                 self.render("error.html", error=msg)
                 return
 
-            if not comment:
-                msg = "This comment doesn't exist."
-                self.render("error.html", error=msg)
-                return
-
-            if comment.commented_by.name != self.user.name:
-                msg = "You are not the author of this comment."
-                self.render("error.html", error=msg)
-                return
-
-            comment.delete()
-            self.redirect('/blog/%s' % str(post.key().id()))
-
-        else:
-            self.redirect("/login")
-
-class EditComment(BlogHandler):
-    def get(self):
-        if self.user:
-            post_id = self.request.get('post_id')
-            post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(post_key)
-
             comment_id = self.request.get('comment_id')
             comment_key = db.Key.from_path( 'Comment', int(comment_id), parent=post_key)
             comment = db.get(comment_key)
-            if not post:
-                msg = "This post  doesn't exist."
-                self.render("error.html", error=msg)
-                return
-
+            #make sure the comment exists
             if not comment:
                 msg = "This comment doesn't exist."
                 self.render("error.html", error=msg)
                 return
 
+            #make sure the user is the author of the comment
             if comment.commented_by.name != self.user.name:
                 msg = "You are not the author of this comment."
                 self.render("error.html", error=msg)
                 return
 
-            comments = post.get_comments()
-            self.render('editcomment.html', post=post, comment_id=comment_id, content=comment.content, comments=comments)
+            self.get_done(post, comment)
 
         else:
             self.redirect("/login")
+    def get_done(self, *a, **kw):
+        raise NotImplementedError
+
+class DeleteComment(HandleComment):
+    def get_done(self, post, comment):
+        comment.delete()
+        self.redirect('/blog/%s' % str(post.key().id()))
+
+
+class EditComment(HandleComment):
+    def get_done(self, post, comment):
+        comments = post.get_comments()
+        comment_id = comment.key().id()
+        self.render('editcomment.html', post=post, comment_id=comment_id, content=comment.content, comments=comments)
+
 
     def post(self):
         if self.user:
@@ -515,13 +523,14 @@ class EditComment(BlogHandler):
             post_key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(post_key)
 
-            comment_id = self.request.get('comment_id')
-            comment_key = db.Key.from_path( 'Comment', int(comment_id), parent=post_key)
-            comment = db.get(comment_key)
             if not post:
                 msg = "This post  doesn't exist."
                 self.render("error.html", error=msg)
                 return
+
+            comment_id = self.request.get('comment_id')
+            comment_key = db.Key.from_path( 'Comment', int(comment_id), parent=post_key)
+            comment = db.get(comment_key)
 
             if not comment:
                 msg = "This comment doesn't exist."
@@ -543,7 +552,6 @@ class EditComment(BlogHandler):
                 comments = post.get_comments()
                 self.render("editcomment.html", post=post,comment_id=comment_id, comments=comments, error=error)
 
-
         else:
             self.redirect("/login")
 
@@ -551,10 +559,10 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/?', BlogFront),
                                ('/blog/([0-9]+)', PostPage),
                                ('/blog/newpost', NewPost),
-                               ('/blog/edit/([0-9]+)', EditPost),
-                               ('/blog/delete/([0-9]+)', DeletePost),
-                               ('/blog/vote/([0-9]+)', VotePost),
-                               ('/blog/newcomment/([0-9]+)', NewComment),
+                               ('/blog/edit', EditPost),
+                               ('/blog/delete', DeletePost),
+                               ('/blog/vote', VotePost),
+                               ('/blog/newcomment', NewComment),
                                ('/blog/deletecomment', DeleteComment),
                                ('/blog/editcomment', EditComment),
                                ('/signup', Register),

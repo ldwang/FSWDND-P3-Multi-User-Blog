@@ -6,7 +6,7 @@
     <h3>Comments</h3>
     {% if user %}
       <div class="comment-form">
-        <form method="post" action="/blog/newcomment/{{post.key().id()}}">
+        <form method="post" action="/blog/newcomment?post_id={{post.key().id()}}">
           <label>
             <div class="comment-new">New Comment:</div>
             <textarea name="content" class="comment-content">{{content}}</textarea>

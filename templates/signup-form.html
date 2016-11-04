@@ -1,17 +1,9 @@
-<!DOCTYPE html>
+{% extends "base.html" %}
 
-<html>
-  <head>
-    <title>Sign Up</title>
-    <style type="text/css">
-      .label {text-align: right}
-      .error {color: red}
-    </style>
-
-  </head>
-
-  <body>
-    <h2>Signup</h2>
+{% block content %}
+    <div class="login-heading">
+      Singup<a href="/login" class="login-heading-right">Login</a>
+    </div>
     <form method="post">
       <table>
         <tr>
@@ -19,7 +11,7 @@
             Username
           </td>
           <td>
-            <input type="text" name="username" value="{{username}}">
+            <input type="text" name="username" value="{{username}}" class="input-login">
           </td>
           <td class="error">
             {{error_username}}
@@ -31,7 +23,7 @@
             Password
           </td>
           <td>
-            <input type="password" name="password" value="">
+            <input type="password" name="password" value="" class="input-login">
           </td>
           <td class="error">
             {{error_password}}
@@ -43,7 +35,7 @@
             Verify Password
           </td>
           <td>
-            <input type="password" name="verify" value="">
+            <input type="password" name="verify" value="" class="input-login">
           </td>
           <td class="error">
             {{error_verify}}
@@ -55,7 +47,7 @@
             Email (optional)
           </td>
           <td>
-            <input type="text" name="email" value="{{email}}">
+            <input type="text" name="email" value="{{email}}" class="input-login">
           </td>
           <td class="error">
             {{error_email}}
@@ -65,6 +57,4 @@
 
       <input type="submit" value="Submit">
     </form>
-  </body>
-
-</html>
+{% endblock %}
